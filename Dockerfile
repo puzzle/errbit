@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM puzzle/ose3-rails
 MAINTAINER David Papp <david@ghostmonitor.com>
 
 
