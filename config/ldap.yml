@@ -42,5 +42,5 @@ production:
   port: 636
   attribute: uid
   base: <%= ENV["LDAP_BASE"] %>
-  ssl: start_tls
+  ssl: <%= ENV["LDAP_ENCRYPTION"] || 'start_tls' %>
   # <<: *AUTHORIZATIONS
