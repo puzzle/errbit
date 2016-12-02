@@ -14,6 +14,7 @@ Errbit::Config = Configurator.run(
   enforce_ssl:               ['ERRBIT_ENFORCE_SSL'],
   confirm_err_actions:       ['ERRBIT_CONFIRM_ERR_ACTIONS'],
   user_has_username:         ['ERRBIT_USER_HAS_USERNAME'],
+  use_ldap_auth:             ['ERRBIT_USE_LDAP_AUTH'],
   use_gravatar:              ['ERRBIT_USE_GRAVATAR'],
   gravatar_default:          ['ERRBIT_GRAVATAR_DEFAULT'],
   email_from:                ['ERRBIT_EMAIL_FROM'],

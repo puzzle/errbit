@@ -75,7 +75,7 @@ class User
   validates :name, presence: true
   validates :github_login, uniqueness: { allow_nil: true }
 
-  if Errbit::Config.user_has_username
+  if Errbit::Config.user_has_username || Errbit::Config.use_ldap_auth
     field :username
     validates :username, presence: true
   end

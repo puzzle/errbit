@@ -19,8 +19,10 @@ gem 'font-awesome-rails'
 gem 'haml'
 gem 'htmlentities'
 gem 'kaminari', '>= 0.16.3'
+gem 'lighthouse-api'
 gem 'mongoid', '5.0.2'
 gem 'mongoid_rails_migrations'
+gem 'oruen_redmine_client', require: 'redmine_client'
 gem 'rack-ssl', require: 'rack/ssl' # force SSL
 gem 'rack-ssl-enforcer', require: false
 gem 'rails_autolink'
