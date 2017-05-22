@@ -19,8 +19,8 @@ class User
   field :encrypted_password, type: String
 
   ### Recoverable
-  field :reset_password_token, type: String
-  field :reset_password_sent_at, type: Time
+  #field :reset_password_token, type: String
+  #field :reset_password_sent_at, type: Time
 
   ### Rememberable
   field :remember_created_at, type: Time
@@ -93,6 +93,16 @@ class User
     self.class.validators_on(:password).map { |v| v.validate_each(self, :password, password) }
     return false if errors.any?
     save(validate: false)
+  end
+
+  def ldap_before_save
+    require 'pry'; binding.pry unless $pstop
+    name = Devise::LDAP::Adapter.get_ldap_param(self.username, "givenName")
+    surname = Devise::LDAP::Adapter.get_ldap_param(self.username, "sn")
+    mail = Devise::LDAP::Adapter.get_ldap_param(self.username, "mail")
+
+    self.name = (name + surname).join ' '
+    self.email = mail.first
   end
 
   private def generate_authentication_token
