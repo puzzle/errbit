@@ -1,0 +1,441 @@
+---
+  kind: "Template"
+  apiVersion: "v1"
+  metadata: 
+    name: "errbit-ldap"
+  objects: 
+    - 
+      kind: "ImageStream"
+      apiVersion: "v1"
+      metadata: 
+        name: "rails"
+        labels: 
+          app: "rails"
+        annotations: 
+          openshift.io/generated-by: "Puzzle ITC"
+    - 
+      apiVersion: v1
+      kind: Template
+      metadata:
+        name: mongodb-data
+      objects:
+      - apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          annotations:
+            pv.kubernetes.io/bind-completed: "yes"
+          labels:
+            template: mongodb-persistent-template
+          name: mongodb
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: ${DATABASE_PVC_SIZE}
+        status: {}
+    - 
+      kind: "BuildConfig"
+      apiVersion: "v1"
+      metadata: 
+        name: "rails"
+        labels: 
+          app: "rails"
+        annotations: 
+          openshift.io/generated-by: "Puzzle ITC"
+      spec: 
+        triggers: 
+          - 
+            type: "ConfigChange"
+          - 
+            type: "ImageChange"
+            imageChange: {}
+        source: 
+          type: "Git"
+          git: 
+            uri: "${SOURCE_REPOSITORY_URL}"
+            ref: "${SOURCE_REPOSITORY_REF}"
+          sourceSecret: 
+            name: "${SOURCE_REPOSITORY_SECRET_NAME}"
+        strategy: 
+          type: "Source"
+          sourceStrategy: 
+            from: 
+              kind: "ImageStreamTag"
+              namespace: "${BASE_IMAGE_PROJECT}"
+              name: "${BASE_IMAGE_NAME}:latest"
+            forcePull: true
+            incremental: false
+            env:
+              - name: "RAILS_HOST_NAME"
+                value: "${PUBLIC_HOSTNAME}"
+        output: 
+          to: 
+            kind: "ImageStreamTag"
+            name: "rails:latest"
+        resources: {}
+      status: 
+        lastVersion: 0
+    - 
+      kind: "DeploymentConfig"
+      apiVersion: "v1"
+      metadata: 
+        name: "rails"
+        creationTimestamp: null
+        labels: 
+          app: "rails"
+        annotations: 
+          openshift.io/generated-by: "Puzzle ITC"
+      spec: 
+        strategy: 
+          type: "Recreate"
+          recreateParams: 
+            pre: 
+              failurePolicy: "Abort"
+              execNewPod: 
+                command: 
+                  - "/usr/bin/bash"
+                  - "-c"
+                  - "$STI_SCRIPTS_PATH/deploy"
+                containerName: "rails"
+          resources: {}
+        triggers: 
+          - 
+            type: "ConfigChange"
+          - 
+            type: "ImageChange"
+            imageChangeParams: 
+              automatic: true
+              containerNames: 
+                - "rails"
+              from: 
+                kind: "ImageStreamTag"
+                name: "rails:latest"
+        replicas: 1
+        selector: 
+          app: "rails"
+          deploymentconfig: "rails"
+        template: 
+          metadata: 
+            labels: 
+              app: "rails"
+              deploymentconfig: "rails"
+            annotations: 
+              openshift.io/generated-by: "Puzzle ITC"
+          spec: 
+            containers: 
+              - 
+                name: "rails"
+                image: "rails:latest"
+                ports: 
+                  - 
+                    containerPort: 8080
+                    protocol: "TCP"
+                env: 
+                  - 
+                    name: "SECRET_KEY_BASE"
+                    value: "${SECRET_KEY_BASE}"
+                  - 
+                    name: "RAILS_ENV"
+                    value: "production"
+                  - 
+                    name: "MONGO_URL"
+                    value: "mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@mongodb/${MONGO_DATABASE}"
+                  - 
+                    name: "ERRBIT_EMAIL_FROM"
+                    value: "${ERRBIT_EMAIL_FROM}"
+                  - 
+                    name: "ERRBIT_EMAIL_AT_NOTICES"
+                    value: "${ERRBIT_EMAIL_AT_NOTICES}"
+                  - 
+                    name: "ERRBIT_PER_APP_EMAIL_AT_NOTICES"
+                    value: "${ERRBIT_PER_APP_EMAIL_AT_NOTICES}"
+                  - 
+                    name: "SMTP_PORT"
+                    value: "${SMTP_PORT}"
+                  - 
+                    name: "SMTP_AUTHENTICATION"
+                    value: "${SMTP_AUTHENTICATION}"
+                  - 
+                    name: "RAILS_HOST_NAME"
+                    value: "${PUBLIC_HOSTNAME}"
+                  - 
+                    name: "LDAP_USER_ATTR"
+                    value: "${LDAP_USER_ATTR}"
+                  - 
+                    name: "LDAP_HOST"
+                    value: "${LDAP_HOST}"
+                  - 
+                    name: "LDAP_PORT"
+                    value: "${LDAP_PORT}"
+                  - 
+                    name: "LDAP_BASE"
+                    value: "${LDAP_BASE}"
+                  - 
+                    name: "LDAP_GROUP_BASE"
+                    value: "${LDAP_GROUP_BASE}"
+                  - 
+                    name: "LDAP_REQUIRED_GROUP"
+                    value: "${LDAP_REQUIRED_GROUP}"
+                  - 
+                    name: "LDAP_SSL"
+                    value: "${LDAP_SSL}"
+                resources: {}
+                terminationMessagePath: "/dev/termination-log"
+                imagePullPolicy: "Always"
+            restartPolicy: "Always"
+            terminationGracePeriodSeconds: 30
+            dnsPolicy: "ClusterFirst"
+            securityContext: {}
+      status: {}
+    - 
+      apiVersion: v1
+      kind: Template
+      metadata:
+        name: mongodb
+      objects:
+      - apiVersion: v1
+        kind: DeploymentConfig
+        metadata:
+          generation: 1
+          labels:
+            template: mongodb-persistent-template
+          name: mongodb
+        spec:
+          replicas: 1
+          selector:
+            name: mongodb
+          strategy:
+            recreateParams:
+              timeoutSeconds: 600
+            resources: {}
+            type: Recreate
+          template:
+            metadata:
+              labels:
+                name: mongodb
+            spec:
+              containers:
+              - env:
+                - name: MONGODB_USER
+                  value: ${MONGODB_USER}
+                - name: MONGODB_PASSWORD
+                  value: ${MONGODB_PASSWORD}
+                - name: MONGODB_DATABASE
+                  value: ${MONGODB_DATABASE}
+                - name: MONGODB_ADMIN_PASSWORD
+                  value: ${MONGODB_ADMIN_PASSWORD}
+                image: registry.access.redhat.com/rhscl/mongodb-32-rhel7
+                imagePullPolicy: IfNotPresent
+                livenessProbe:
+                  failureThreshold: 3
+                  initialDelaySeconds: 30
+                  periodSeconds: 10
+                  successThreshold: 1
+                  tcpSocket:
+                    port: 27017
+                  timeoutSeconds: 1
+                name: mongodb
+                ports:
+                - containerPort: 27017
+                  protocol: TCP
+                readinessProbe:
+                  exec:
+                    command:
+                    - /bin/sh
+                    - -i
+                    - -c
+                    - mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD
+                      --eval="quit()"
+                  failureThreshold: 3
+                  initialDelaySeconds: 3
+                  periodSeconds: 10
+                  successThreshold: 1
+                  timeoutSeconds: 1
+                resources:
+                  limits:
+                    memory: 1Gi
+                securityContext:
+                  capabilities: {}
+                  privileged: false
+                terminationMessagePath: /dev/termination-log
+                volumeMounts:
+                - mountPath: /var/lib/mongodb/data
+                  name: mongodb-data
+              dnsPolicy: ClusterFirst
+              restartPolicy: Always
+              securityContext: {}
+              terminationGracePeriodSeconds: 30
+              volumes:
+              - name: mongodb-data
+                persistentVolumeClaim:
+                  claimName: mongodb
+          test: false
+          triggers:
+          - imageChangeParams:
+              automatic: true
+              containerNames:
+              - mongodb
+              from:
+                kind: ImageStreamTag
+                name: mongodb:latest
+                namespace: openshift
+            type: ImageChange
+          - type: ConfigChange
+        status: {}
+    - 
+      kind: "Route"
+      apiVersion: "v1"
+      metadata: 
+        name: "rails"
+        creationTimestamp: null
+        labels: 
+          app: "rails"
+      spec: 
+        host: "${PUBLIC_HOSTNAME}"
+        to: 
+          kind: "Service"
+          name: "rails"
+        _disabled_tls: 
+          termination: "edge"
+          insecureEdgeTerminationPolicy: "Redirect"
+      status: {}
+    - 
+      kind: "Service"
+      apiVersion: "v1"
+      metadata: 
+        name: "rails"
+        labels: 
+          app: "rails"
+        annotations: 
+          openshift.io/generated-by: "Puzzle ITC"
+      spec: 
+        ports: 
+          - 
+            name: "8080-tcp"
+            protocol: "TCP"
+            port: 8080
+            targetPort: 8080
+        selector: 
+          app: "rails"
+          deploymentconfig: "rails"
+        type: "ClusterIP"
+        sessionAffinity: "None"
+      status: 
+        loadBalancer: {}
+  parameters: 
+    - 
+      name: "APPLICATION_DOMAIN"
+      description: "The exposed hostname that will route to the rails service, if left blank a value will be defaulted."
+    - 
+      name: "SOURCE_REPOSITORY_URL"
+      description: "The URL of the repository with your application source code"
+      required: true
+    - 
+      name: "SOURCE_REPOSITORY_REF"
+      description: "The ref (branch, tag, commit) in the repository to use"
+      value: "master"
+      required: true
+    - 
+      name: "SOURCE_REPOSITORY_SECRET_NAME"
+      description: "The ose3 secret used for fetching the source"
+      value: "pitc-basicauth-git"
+      required: true
+    - 
+      name: "PUBLIC_HOSTNAME"
+      description: "The Rails 5 host name param, must be set to the public route"
+      value: "sweb-sweb-int-rails-base-image.ose3.puzzle.ch"
+    - 
+      name: "SECRET_KEY_BASE"
+      description: "Secret Key"
+      generate: "expression"
+      from: "[a-zA-Z0-9]{128}"
+    - 
+      name: "DATABASE_USER"
+      description: "Database user name"
+      generate: "expression"
+      from: "[a-z]{1}[a-zA-Z0-9]{15}"
+    - 
+      name: "DATABASE_PASSWORD"
+      description: "Database user password"
+      generate: "expression"
+      from: "[a-zA-Z0-9]{16}"
+    - 
+      name: "DATABASE_NAME"
+      description: "Database name"
+      value: "database"
+    - 
+      name: "DATABASE_SERVICE_HOST"
+      description: "Mysql Service Host"
+      value: "postgresql"
+    - 
+      name: "DATABASE_PVC_SIZE"
+      description: "Size of the persistent volume claim for the database, e.g. 512Mi or 2Gi"
+      value: "512Mi"
+    - 
+      name: "RAILS_DATABASE_ADAPTER"
+      description: ""
+      value: "postgresql"
+    - 
+      name: "BASE_IMAGE_PROJECT"
+      description: "The name of the openshift project that builds your image"
+      value: "pitc-rails-bi-prod"
+      required: true
+    - 
+      name: "BASE_IMAGE_NAME"
+      description: "The name of the base image to use"
+      value: "ose3-rails"
+      required: true
+    - 
+      name: "POSTGRESQL_BASE_IMAGE_PROJECT"
+      description: "The name of the openshift project that builds the postgresql / postgresql backup image"
+      value: "openshift"
+      required: true
+    - 
+      name: "LDAP_USER_ATTR"
+      required: true
+    - 
+      name: "LDAP_HOST"
+      required: true
+    - 
+      name: "LDAP_PORT"
+      required: true
+    - 
+      name: "LDAP_BASE"
+      required: true
+    - 
+      name: "LDAP_GROUP_BASE"
+      required: true
+    - 
+      name: "LDAP_REQUIRED_GROUP"
+      required: true
+    - 
+      name: "LDAP_SSL"
+      required: true
+    - 
+      name: "ERRBIT_EMAIL_FROM"
+      required: true
+    - 
+      name: "ERRBIT_EMAIL_AT_NOTICES"
+      value: "[1, 10, 100]"
+      required: true
+    - 
+      name: "ERRBIT_PER_APP_EMAIL_AT_NOTICES"
+      value: "true"
+      required: true
+    - 
+      name: "EMAIL_DELIVERY_METHOD"
+      value: "smtp"
+      required: true
+    - 
+      name: "SMTP_PORT"
+      value: "25"
+      required: true
+    - 
+      name: "SMTP_SERVER"
+      value: "localhost"
+      required: true
+    - 
+      name: "SMTP_AUTHENTICATION"
+      value: "STARTTLS"
+      required: true
