@@ -11,8 +11,6 @@ this is a fork of https://github.com/errbit/errbit with added LDAP authenticatio
 
 # usage
 
-adjust config/initializers/devise.rb ldap settings to your needs (extract these to ldap.yaml ?)
-
 ## environment variables
 
 | Name | Description / Example | Default |
@@ -24,12 +22,6 @@ adjust config/initializers/devise.rb ldap settings to your needs (extract these 
 | LDAP_BASE | ldap user base / ou=users,dc=acme,dc=com | - |
 | LDAP_SSL | ldap ssl mode | true |
 | LDAP_USER_ATTR | ldap user attribute to identify user | cn |
-
-# mod log
-
-Gemfile add: gem "devise_ldap_authenticatable"
-
-rails generate devise_ldap_authenticatable:install
 
 # links
 
