@@ -18,6 +18,7 @@ adjust config/initializers/devise.rb ldap settings to your needs (extract these 
 | Name | Description / Example | Default |
 | --- | --- | --- |
 | LDAP_GROUP_BASE | ldap group base / ou=groups,dc=acme,dc=com | - |
+| LDAP_REQUIRED_GROUP |  the group the users have to be part of for accessing errbit / cn=errbit,ou=groups,dc=acme,dc=com | - |
 | LDAP_HOST | ldap server host | localhost |
 | LDAP_PORT | ldap server port | 636 |
 | LDAP_BASE | ldap user base / ou=users,dc=acme,dc=com | - |
