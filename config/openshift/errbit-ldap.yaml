@@ -15,23 +15,18 @@
           openshift.io/generated-by: "Puzzle ITC"
     - 
       apiVersion: v1
-      kind: Template
+      kind: PersistentVolumeClaim
       metadata:
+        annotations:
+          pv.kubernetes.io/bind-completed: "yes"
+        labels:
+          template: mongodb-persistent-template
         name: mongodb-data
-      objects:
-      - apiVersion: v1
-        kind: PersistentVolumeClaim
-        metadata:
-          annotations:
-            pv.kubernetes.io/bind-completed: "yes"
-          labels:
-            template: mongodb-persistent-template
-          name: mongodb
-        spec:
-          accessModes:
-          - ReadWriteOnce
-          resources:
-            requests:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
               storage: ${DATABASE_PVC_SIZE}
         status: {}
     - 
@@ -190,99 +185,94 @@
       status: {}
     - 
       apiVersion: v1
-      kind: Template
+      kind: DeploymentConfig
       metadata:
+        generation: 1
+        labels:
+          template: mongodb-persistent-template
         name: mongodb
-      objects:
-      - apiVersion: v1
-        kind: DeploymentConfig
-        metadata:
-          generation: 1
-          labels:
-            template: mongodb-persistent-template
+      spec:
+        replicas: 1
+        selector:
           name: mongodb
-        spec:
-          replicas: 1
-          selector:
-            name: mongodb
-          strategy:
-            recreateParams:
-              timeoutSeconds: 600
-            resources: {}
-            type: Recreate
-          template:
-            metadata:
-              labels:
-                name: mongodb
-            spec:
-              containers:
-              - env:
-                - name: MONGODB_USER
-                  value: ${MONGODB_USER}
-                - name: MONGODB_PASSWORD
-                  value: ${MONGODB_PASSWORD}
-                - name: MONGODB_DATABASE
-                  value: ${MONGODB_DATABASE}
-                - name: MONGODB_ADMIN_PASSWORD
-                  value: ${MONGODB_ADMIN_PASSWORD}
-                image: registry.access.redhat.com/rhscl/mongodb-32-rhel7
-                imagePullPolicy: IfNotPresent
-                livenessProbe:
-                  failureThreshold: 3
-                  initialDelaySeconds: 30
-                  periodSeconds: 10
-                  successThreshold: 1
-                  tcpSocket:
-                    port: 27017
-                  timeoutSeconds: 1
-                name: mongodb
-                ports:
-                - containerPort: 27017
-                  protocol: TCP
-                readinessProbe:
-                  exec:
-                    command:
-                    - /bin/sh
-                    - -i
-                    - -c
-                    - mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD
-                      --eval="quit()"
-                  failureThreshold: 3
-                  initialDelaySeconds: 3
-                  periodSeconds: 10
-                  successThreshold: 1
-                  timeoutSeconds: 1
-                resources:
-                  limits:
-                    memory: 1Gi
-                securityContext:
-                  capabilities: {}
-                  privileged: false
-                terminationMessagePath: /dev/termination-log
-                volumeMounts:
-                - mountPath: /var/lib/mongodb/data
-                  name: mongodb-data
-              dnsPolicy: ClusterFirst
-              restartPolicy: Always
-              securityContext: {}
-              terminationGracePeriodSeconds: 30
-              volumes:
-              - name: mongodb-data
-                persistentVolumeClaim:
-                  claimName: mongodb
-          test: false
-          triggers:
-          - imageChangeParams:
-              automatic: true
-              containerNames:
-              - mongodb
-              from:
-                kind: ImageStreamTag
-                name: mongodb:latest
-                namespace: openshift
-            type: ImageChange
-          - type: ConfigChange
-        status: {}
+        strategy:
+          recreateParams:
+            timeoutSeconds: 600
+          resources: {}
+          type: Recreate
+        template:
+          metadata:
+            labels:
+              name: mongodb
+          spec:
+            containers:
+            - env:
+              - name: MONGODB_USER
+                value: "${MONGODB_USER}"
+              - name: MONGODB_PASSWORD
+                value: "${MONGODB_PASSWORD}"
+              - name: MONGODB_DATABASE
+                value: "${MONGODB_DATABASE}"
+              - name: MONGODB_ADMIN_PASSWORD
+                value: "${MONGODB_ADMIN_PASSWORD}"
+              image: registry.access.redhat.com/rhscl/mongodb-32-rhel7@sha256:69a237afd2c5c711fc89a8a0d0f8d9b22246896a41d813be72374f8dad6913cb
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                failureThreshold: 3
+                initialDelaySeconds: 30
+                periodSeconds: 10
+                successThreshold: 1
+                tcpSocket:
+                  port: 27017
+                timeoutSeconds: 1
+              name: mongodb
+              ports:
+              - containerPort: 27017
+                protocol: TCP
+              readinessProbe:
+                exec:
+                  command:
+                  - /bin/sh
+                  - -i
+                  - -c
+                  - mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD
+                    --eval="quit()"
+                failureThreshold: 3
+                initialDelaySeconds: 3
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 1
+              resources:
+                limits:
+                  memory: 1Gi
+              securityContext:
+                capabilities: {}
+                privileged: false
+              terminationMessagePath: /dev/termination-log
+              volumeMounts:
+              - mountPath: /var/lib/mongodb/data
+                name: mongodb-data
+            dnsPolicy: ClusterFirst
+            restartPolicy: Always
+            securityContext: {}
+            terminationGracePeriodSeconds: 30
+            volumes:
+            - name: mongodb-data
+              persistentVolumeClaim:
+                claimName: mongodb-data
+      test: false
+      triggers:
+      - imageChangeParams:
+          automatic: true
+          containerNames:
+          - mongodb
+          from:
+            kind: ImageStreamTag
+            name: mongodb:latest
+            namespace: openshift
+        type: ImageChange
+      - type: ConfigChange
+      status: {}
     - 
       kind: "Route"
       apiVersion: "v1"
@@ -325,9 +315,6 @@
         loadBalancer: {}
   parameters: 
     - 
-      name: "APPLICATION_DOMAIN"
-      description: "The exposed hostname that will route to the rails service, if left blank a value will be defaulted."
-    - 
       name: "SOURCE_REPOSITORY_URL"
       description: "The URL of the repository with your application source code"
       required: true
@@ -351,31 +338,32 @@
       generate: "expression"
       from: "[a-zA-Z0-9]{128}"
     - 
-      name: "DATABASE_USER"
+      name: "MONGODB_USER"
       description: "Database user name"
       generate: "expression"
       from: "[a-z]{1}[a-zA-Z0-9]{15}"
     - 
-      name: "DATABASE_PASSWORD"
+      name: "MONGODB_PASSWORD"
       description: "Database user password"
       generate: "expression"
       from: "[a-zA-Z0-9]{16}"
     - 
-      name: "DATABASE_NAME"
+      name: "MONGODB_DATABASE"
       description: "Database name"
       value: "database"
     - 
+      name: "MONGODB_ADMIN_PASSWORD"
+      description: "Database admin password"
+      generate: "expression"
+      from: "[a-zA-Z0-9]{16}"
+    - 
       name: "DATABASE_SERVICE_HOST"
       description: "Mysql Service Host"
-      value: "postgresql"
+      value: "mongodb"
     - 
       name: "DATABASE_PVC_SIZE"
       description: "Size of the persistent volume claim for the database, e.g. 512Mi or 2Gi"
-      value: "512Mi"
-    - 
-      name: "RAILS_DATABASE_ADAPTER"
-      description: ""
-      value: "postgresql"
+      value: "2Gi"
     - 
       name: "BASE_IMAGE_PROJECT"
       description: "The name of the openshift project that builds your image"
@@ -385,11 +373,6 @@
       name: "BASE_IMAGE_NAME"
       description: "The name of the base image to use"
       value: "ose3-rails"
-      required: true
-    - 
-      name: "POSTGRESQL_BASE_IMAGE_PROJECT"
-      description: "The name of the openshift project that builds the postgresql / postgresql backup image"
-      value: "openshift"
       required: true
     - 
       name: "LDAP_USER_ATTR"
