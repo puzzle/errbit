@@ -96,7 +96,6 @@ class User
   end
 
   def ldap_before_save
-    require 'pry'; binding.pry unless $pstop
     name = Devise::LDAP::Adapter.get_ldap_param(self.username, "givenName")
     surname = Devise::LDAP::Adapter.get_ldap_param(self.username, "sn")
     mail = Devise::LDAP::Adapter.get_ldap_param(self.username, "mail")
