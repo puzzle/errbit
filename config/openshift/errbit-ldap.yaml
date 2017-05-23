@@ -135,7 +135,7 @@
                     value: "production"
                   - 
                     name: "MONGO_URL"
-                    value: "mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@mongodb/${MONGO_DATABASE}"
+                    value: "mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@mongodb/${MONGODB_DATABASE}"
                   - 
                     name: "ERRBIT_EMAIL_FROM"
                     value: "${ERRBIT_EMAIL_FROM}"
@@ -313,6 +313,26 @@
         sessionAffinity: "None"
       status: 
         loadBalancer: {}
+    - 
+      apiVersion: v1
+      kind: Service
+      metadata:
+        labels:
+          template: mongodb-persistent-template
+        name: mongodb
+      spec:
+        ports:
+        - name: mongodb
+          port: 27017
+          protocol: TCP
+          targetPort: 27017
+        selector:
+          name: mongodb
+        sessionAffinity: None
+        type: ClusterIP
+      status:
+        loadBalancer: {}
+
   parameters: 
     - 
       name: "SOURCE_REPOSITORY_URL"
