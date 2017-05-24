@@ -7,7 +7,7 @@ authorizations: &AUTHORIZATIONS
   attribute: <%= ENV['LDAP_USER_ATTR'] || 'cn' %>
   port: <%= ENV['LDAP_PORT'] || 389 %>
   host: <%= ENV['LDAP_HOST'] || 'localhost' %>
-  ssl: <%= ENV['LDAP_SSL'] || true %>
+  ssl: <%= ENV['LDAP_SSL'] || 'simple_tls' %>
   group_base: <%= ENV['LDAP_GROUP_BASE'] %>
   base: <%= ENV['LDAP_BASE'] %>
   ## Requires config.ldap_check_group_membership in devise.rb be true

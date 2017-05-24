@@ -20,7 +20,7 @@ this is a fork of https://github.com/errbit/errbit with added LDAP authenticatio
 | LDAP_HOST | ldap server host | localhost |
 | LDAP_PORT | ldap server port | 636 |
 | LDAP_BASE | ldap user base / ou=users,dc=acme,dc=com | - |
-| LDAP_SSL | ldap ssl mode | true |
+| LDAP_SSL | ldap ssl mode | simple_tls |
 | LDAP_USER_ATTR | ldap user attribute to identify user | cn |
 
 # links
