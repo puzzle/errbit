@@ -144,11 +144,17 @@
                     name: "ERRBIT_PER_APP_EMAIL_AT_NOTICES"
                     value: "${ERRBIT_PER_APP_EMAIL_AT_NOTICES}"
                   - 
+                    name: "EMAIL_DELIVERY_METHOD"
+                    value: "${EMAIL_DELIVERY_METHOD}"
+                  - 
                     name: "SMTP_PORT"
                     value: "${SMTP_PORT}"
                   - 
                     name: "SMTP_AUTHENTICATION"
                     value: "${SMTP_AUTHENTICATION}"
+                  - 
+                    name: "SMTP_SERVER"
+                    value: "${SMTP_SERVER}"
                   - 
                     name: "RAILS_HOST_NAME"
                     value: "${PUBLIC_HOSTNAME}"
