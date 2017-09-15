@@ -179,6 +179,10 @@
                   - 
                     name: "LDAP_SSL"
                     value: "${LDAP_SSL}"
+                  -
+                    name: "TZ"
+                    value: "Europe/Berlin"
+
                 resources: {}
                 terminationMessagePath: "/dev/termination-log"
                 imagePullPolicy: "Always"
